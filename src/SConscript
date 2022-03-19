@@ -31,4 +31,19 @@ CPPDEFINES = ['__RTTHREAD__']
 
 group = DefineGroup('Kernel', src, depend = [''], CPPPATH = CPPPATH, CPPDEFINES = CPPDEFINES)
 
+TsPy = Glob("**/*_Ts.py")
+
+cwd = os.path.normpath(GetCurrentDir())
+for ts in TsPy:
+    target = "%s.autogen.cpp" % str(ts)[:-6]
+    basename = os.path.basename(target)
+    relPathTarget = os.path.relpath(target, cwd)
+    Env.Command(
+        target,
+        ts,
+        "cd ${SOURCE.srcpath.dir.abspath} && python ${SOURCE.file} --output=${TARGET.abspath}"
+    )
+    Env.Depends(os.path.join(Dir(".").abspath, os.path.splitext(basename)[0], ".o"), File(target))
+    group = [File(relPathTarget)] + group
+
 Return('group')
