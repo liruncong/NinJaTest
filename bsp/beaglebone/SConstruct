@@ -26,8 +26,38 @@ env.Tool('ninja')
 Export('RTT_ROOT')
 Export('rtconfig')
 
+def ExpandList(l, expandList = []):
+    for x in l:
+        if type(x) != list:
+            expandList.append(x)
+        else:
+            ExpandList(x)
+    return expandList
+
 # prepare building environment
-objs = PrepareBuilding(env, RTT_ROOT)
+objs = ExpandList(PrepareBuilding(env, RTT_ROOT))
+
+def GenIncPathsFile(env, objs):
+    incPathsFile = "build/__cpp_path.txt"
+    cppPathStr = "-I" + "\n-I".join(env["CPPPATH"]).replace("\\", "/")
+    compileIncPath = os.path.normpath(os.path.join(rtconfig.EXEC_PATH, "..", "include"))
+    def WriteIncPathsFile(target, source, env):
+        f = open(str(target[0]), "w" , encoding = "utf-8")
+        f.write("-I%s\n" % (os.path.join(compileIncPath, "libcxx").replace("\\", "/")))
+        f.write("-I%s\n" % (compileIncPath.replace("\\", "/")))
+        f.write(cppPathStr)
+        f.close()
+    env.Command(
+        incPathsFile,
+        None,
+        WriteIncPathsFile
+    )
+
+    env.Depends(objs, [incPathsFile])
+    return incPathsFile
+
+incPathsFile = GenIncPathsFile(env, objs)
+env["_CPPINCFLAGS"] = "@%s" % (incPathsFile)
 
 # make a building
 DoBuilding(TARGET, objs)
