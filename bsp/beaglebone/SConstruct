@@ -14,12 +14,12 @@ TARGET = 'rtthread-beaglebone.' + rtconfig.TARGET_EXT
 
 #SetOption('experimental','ninja')
 DefaultEnvironment(tools=[])
-env = Environment(tools = ['mingw'],
-	AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
-	CC = rtconfig.CC, CFLAGS = rtconfig.CFLAGS,
-	CXX= rtconfig.CXX, CXXFLAGS = rtconfig.CFLAGS,
-	AR = rtconfig.AR, ARFLAGS = '-rc',
-	LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS)
+env = Environment(tools = ['mingw', 'textfile'],
+    AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
+    CC = rtconfig.CC, CFLAGS = rtconfig.CFLAGS,
+    CXX= rtconfig.CXX, CXXFLAGS = rtconfig.CFLAGS,
+    AR = rtconfig.AR, ARFLAGS = '-rc',
+    LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS)
 env.PrependENVPath('PATH', rtconfig.EXEC_PATH)
 env.Tool('ninja')
 
@@ -37,27 +37,26 @@ def ExpandList(l, expandList = []):
 # prepare building environment
 objs = ExpandList(PrepareBuilding(env, RTT_ROOT))
 
-def GenIncPathsFile(env, objs):
-    incPathsFile = "build/__cpp_path.txt"
-    cppPathStr = "-I" + "\n-I".join(env["CPPPATH"]).replace("\\", "/")
-    compileIncPath = os.path.normpath(os.path.join(rtconfig.EXEC_PATH, "..", "include"))
-    def WriteIncPathsFile(target, source, env):
-        f = open(str(target[0]), "w" , encoding = "utf-8")
-        f.write("-I%s\n" % (os.path.join(compileIncPath, "libcxx").replace("\\", "/")))
-        f.write("-I%s\n" % (compileIncPath.replace("\\", "/")))
-        f.write(cppPathStr)
-        f.close()
-    env.Command(
-        incPathsFile,
-        None,
-        WriteIncPathsFile
+cppPathStr = "-I" + "\n-I".join(env["CPPPATH"]).replace("\\", "/")
+compileIncPath = os.path.normpath(os.path.join(rtconfig.EXEC_PATH, "..", "include"))
+incPathsFile = env.Textfile("build/__cpp_path.txt", [
+    "-I%s\n" % (os.path.join(compileIncPath, "libcxx").replace("\\", "/")),
+    "-I%s\n" % (compileIncPath.replace("\\", "/")),
+    cppPathStr
+])
+
+def _add_scanner(builder):
+    def new_scanner(node, env, path):
+        return incPathsFile
+       
+    builder.builder.target_scanner = SCons.Scanner.Scanner(
+        function=new_scanner,
+        path_function=SCons.Script.FindPathDirs('CPPPATH'),
     )
+for object_builder in SCons.Tool.createObjBuilders(env):
+    _add_scanner(object_builder)
 
-    env.Depends(objs, [incPathsFile])
-    return incPathsFile
-
-incPathsFile = GenIncPathsFile(env, objs)
-env["_CPPINCFLAGS"] = "@%s" % (incPathsFile)
+env["_CPPINCFLAGS"] = "@%s" % (incPathsFile[0].path)
 
 # make a building
 DoBuilding(TARGET, objs)
