@@ -86,11 +86,11 @@ _sbrk_r(struct _reent *ptr, ptrdiff_t incr)
 }
 #endif /*RT_USING_HEAP*/
 
-void __libc_init_array(void)
-{
-    /* we not use __libc init_aray to initialize C++ objects */
-    /* __libc_init_array is ARM code, not Thumb; it will cause a hardfault. */
-}
+//void __libc_init_array(void)
+//{
+//    /* we not use __libc init_aray to initialize C++ objects */
+//    /* __libc_init_array is ARM code, not Thumb; it will cause a hardfault. */
+//}
 
 /* Reentrant versions of system calls.  */
 #ifndef _REENT_ONLY

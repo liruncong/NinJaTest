@@ -45,18 +45,33 @@ incPathsFile = env.Textfile("build/__cpp_path.txt", [
     cppPathStr
 ])
 
+defineOptsFile = env.Textfile("build/__define_options.txt", [
+    "-DTEST1"
+])
+
+objsList = []
+for obj in objs:
+    (fileName, ext) = os.path.splitext(obj.path)
+    if ext in env["CPPSUFFIXES"] or ext == ".o":
+        objsList += [fileName.replace("\\", "/") + ".o"];
+linkObjsFile = env.Textfile(
+    "build/__link_objects.txt",
+    "\n".join(objsList)
+)
+
 def _add_scanner(builder):
     def new_scanner(node, env, path):
-        return incPathsFile
+        return incPathsFile + defineOptsFile + linkObjsFile
        
     builder.builder.target_scanner = SCons.Scanner.Scanner(
         function=new_scanner,
-        path_function=SCons.Script.FindPathDirs('CPPPATH'),
+        path_function=[],
     )
 for object_builder in SCons.Tool.createObjBuilders(env):
     _add_scanner(object_builder)
 
-env["_CPPINCFLAGS"] = "@%s" % (incPathsFile[0].path)
+env["_CPPINCFLAGS"] = "@%s @%s" % (incPathsFile[0].path, defineOptsFile[0].path)
+env["LINKCOM"] = "$LINK -o $TARGET $LINKFLAGS $__RPATH $_LIBDIRFLAGS $_LIBFLAGS @%s" % (linkObjsFile[0].path.replace("\\", "/"))
 
 # make a building
 DoBuilding(TARGET, objs)
