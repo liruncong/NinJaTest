@@ -54,6 +54,7 @@ for obj in objs:
     (fileName, ext) = os.path.splitext(obj.path)
     if ext in env["CPPSUFFIXES"] or ext == ".o":
         objsList += [fileName.replace("\\", "/") + ".o"];
+objsList = sorted(objsList)
 linkObjsFile = env.Textfile(
     "build/__link_objects.txt",
     "\n".join(objsList)
