@@ -816,7 +816,7 @@ def DoBuilding(target, objects):
         for group in Projects:
             local_group(group, objects)
 
-        program = Env.Program(target, objects)
+        program = Env.Program(target, sorted(objects))
 
     EndBuilding(target, program)
 
