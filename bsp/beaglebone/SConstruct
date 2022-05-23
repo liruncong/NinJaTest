@@ -37,17 +37,28 @@ def ExpandList(l, expandList = []):
 # prepare building environment
 objs = ExpandList(PrepareBuilding(env, RTT_ROOT))
 
-cppPathStr = "-I" + "\n-I".join(env["CPPPATH"]).replace("\\", "/")
-compileIncPath = os.path.normpath(os.path.join(rtconfig.EXEC_PATH, "..", "include"))
-incPathsFile = env.Textfile("build/__cpp_path.txt", [
-    "-I%s\n" % (os.path.join(compileIncPath, "libcxx").replace("\\", "/")),
-    "-I%s\n" % (compileIncPath.replace("\\", "/")),
-    cppPathStr
-])
 
-defineOptsFile = env.Textfile("build/__define_options.txt", [
-    "-DTEST1"
-])
+def echo_response_file(respone_list):
+    return (f'@echo {respone_list[0]} > $TARGET & ' + 
+        ' '.join(f'echo {item} >> $TARGET &' for item in respone_list[1:-1]) + 
+        f' echo {respone_list[-1]} >> $TARGET')
+
+compileIncPath = os.path.normpath(os.path.join(rtconfig.EXEC_PATH, "..", "include"))
+cppPathStr = [
+    "-I%s" % (os.path.join(compileIncPath, "libcxx").replace("\\", "/")),
+    "-I%s" % (compileIncPath.replace("\\", "/")),
+]
+cppPathStr += ['-I' + path.replace("\\", "/") for path in env["CPPPATH"]]
+incPathsFile = env.Command("build/__cpp_path.txt",
+    [],
+    echo_response_file(cppPathStr)
+)
+
+defines = ['-DTEST1', '-DTEST2']
+defineOptsFile = env.Command("build/__define_options.txt", 
+    [],
+    echo_response_file(defines)
+)
 
 objsList = []
 for obj in objs:
@@ -55,9 +66,10 @@ for obj in objs:
     if ext in env["CPPSUFFIXES"] or ext == ".o":
         objsList += [fileName.replace("\\", "/") + ".o"];
 objsList = sorted(objsList)
-linkObjsFile = env.Textfile(
+linkObjsFile = env.Command(
     "build/__link_objects.txt",
-    "\n".join(objsList)
+    [],
+    echo_response_file(objsList)
 )
 
 def _add_scanner(builder):
