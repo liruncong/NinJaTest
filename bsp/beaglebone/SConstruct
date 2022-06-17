@@ -22,6 +22,7 @@ env = Environment(tools = ['mingw', 'textfile'],
     LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS)
 env.PrependENVPath('PATH', rtconfig.EXEC_PATH)
 env.Tool('ninja')
+env.Decider("content")
 
 Export('RTT_ROOT')
 Export('rtconfig')
